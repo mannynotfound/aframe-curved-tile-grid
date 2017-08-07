@@ -1,0 +1,43 @@
+body,
+html {
+  margin: 0;
+}
+
+#container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#container-html {
+  position: fixed;
+  opacity: 0;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hide-html {
+  position: fixed;
+  opacity: 0;
+  z-index: -10;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#debug {
+  position: fixed;
+  height: 300px;
+  width: 500px;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  pointer-events: none;
+}
