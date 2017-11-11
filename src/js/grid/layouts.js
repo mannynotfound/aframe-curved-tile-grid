@@ -1,7 +1,4 @@
-import {flatMapDeep} from 'lodash';
-import {createEl} from './index';
-
-const desktopGrid = [
+export const desktopGrid = [
   {
     rows: [
       {
@@ -49,7 +46,7 @@ const desktopGrid = [
   },
 ];
 
-const mobileGrid = [
+export const mobileGrid = [
   {
     rows: [
       {
@@ -99,31 +96,3 @@ const mobileGrid = [
     ],
   },
 ];
-
-export default (content, el) => {
-  const isMobile = AFRAME.utils.device.isMobile();
-  const gridType = isMobile ? mobileGrid : desktopGrid;
-
-  const flattenedGrid = flatMapDeep(gridType, grid => (
-    grid.rows.map((row, rowIdx) => (
-      row.cols.map((col, colIdx) => ({row, rowIdx, col, colIdx}))
-    ))
-  ));
-
-  const zDepth = isMobile ? -3 : 0;
-
-  flattenedGrid.forEach(({row, rowIdx, col, colIdx}, index) => {
-    createEl('a-curvedimage', [
-      ['id', `tile__${rowIdx}_${colIdx}`],
-      ['tile', {
-        index,
-        radius: row.radius,
-        ogHeight: (col.height || row.rowHeight) - 0.1,
-        ogWidth: col.width - 1,
-        ogPos: JSON.stringify({x: 0, y: col.posY || row.posY, z: zDepth}),
-        ogRot: JSON.stringify({x: 0, y: col.rotY, z: 0}),
-        content: JSON.stringify(content[index]),
-      }],
-    ], el);
-  });
-};

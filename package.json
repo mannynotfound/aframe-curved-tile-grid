@@ -37,7 +37,7 @@
     "aframe-mouse-cursor-component": "0.5.1",
     "aframe-template-component": "3.2.1",
     "babel-polyfill": "6.23.0",
-    "lodash": "4.17.4",
+    "lodash.flatmapdeep": "^4.10.0",
     "query-string": "4.3.4",
     "whatwg-fetch": "2.0.3"
   },

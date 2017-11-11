@@ -1,71 +1,114 @@
-import makeGrid from './utils/make-grid';
-import {
-  addInfo, updateInfo, addControls, removeControls, getNextIdx
-} from './utils';
+import flatMapDeep from 'lodash.flatmapdeep';
+import {loadImage} from './loaders';
+import {createEl} from './utils';
+import {desktopGrid, mobileGrid} from './layouts';
 
-import './utils/flip-material';
-import './utils/hover-fade';
-import './utils/removeable';
-import './back-btn';
-import './project-btn';
-import './layout-controls';
-import './media-controls';
-import './information';
-import './tile';
+AFRAME.registerComponent('hover-fade', {
+  dependencies: ['material'],
+  init() {
+    this._mouseEnter = this.mouseEnter.bind(this);
+    this._mouseLeave = this.mouseLeave.bind(this);
+
+    this.el.addEventListener('mouseenter', this._mouseEnter);
+    this.el.addEventListener('mouseleave', this._mouseLeave);
+  },
+  mouseEnter() {
+    this.el.setAttribute('material', {
+      ...this.el.getAttribute('material'),
+      opacity: 1,
+    });
+  },
+  mouseLeave() {
+    this.el.setAttribute('material', {
+      ...this.el.getAttribute('material'),
+      opacity: 0.9,
+    });
+  },
+  remove() {
+    this.el.removeEventListener('mouseenter', this._mouseEnter);
+    this.el.removeEventListener('mouseleave', this._mouseLeave);
+  },
+});
+
+AFRAME.registerComponent('tile', {
+  schema: {
+    index: { type: 'number', parse: Number },
+    radius: { type: 'number', parse: Number },
+    height: { type: 'number', parse: Number },
+    width: { type: 'number', parse: Number },
+    opacity: { type: 'number', parse: Number, default: 0.9 },
+    content: { parse: JSON.parse, default: '{}' },
+    position: { parse: JSON.parse, default: '{}' },
+    rotation: { parse: JSON.parse, default: '{}' },
+  },
+  init() {
+    this.setupAttrs();
+    this.setupClick();
+    this.setupTexture();
+  },
+  setupAttrs() {
+    const {height, width, position, rotation, radius, opacity, index} = this.data;
+    const attributes = [
+      ['data-index', index],
+      ['radius', radius],
+      ['height', height],
+      ['theta-length', width],
+      ['position', position],
+      ['rotation', rotation],
+      ['opacity', opacity],
+      ['hover-fade', true],
+    ];
+
+    attributes.forEach(([p, v]) => this.el.setAttribute(p, v));
+  },
+  setupClick() {
+    this.el.addEventListener('click', () => {
+      window.location.href = `/${this.data.index}`;
+    });
+  },
+  setupTexture() {
+    this.setImageTexture(this.data.content);
+  },
+  setImageTexture({type, url}) {
+    const isImg = type === 'photo' || type === 'gif';
+
+    isImg && loadImage(url, false).then(({id}) => this.el.setAttribute('src', `#${id}`));
+    type === 'gif' && this.el.setAttribute('shader', 'gif');
+  },
+});
 
 AFRAME.registerComponent('grid', {
   schema: {
-    content: {default: '[]', parse: JSON.parse},
+    content: {
+      default: '[]',
+      parse: JSON.parse
+    },
   },
   init() {
-    makeGrid(this.data.content, this.el);
-    this.setupFocus();
-    this.setupControls();
-  },
-  setupFocus() {
-    this.el.addEventListener('focus-tile', e => {
-      if (this.active) { return; }
-      const {tile, content} = e.detail;
-      this.active = {tile, content};
-      this.focusTile(tile.id);
-      addInfo(content.information);
+    const isMobile = AFRAME.utils.device.isMobile();
+    const gridType = isMobile ? mobileGrid : desktopGrid;
+
+    const flattenedGrid = flatMapDeep(gridType, grid => (
+      grid.rows.map((row, rowIdx) => (
+        row.cols.map((col, colIdx) => ({row, rowIdx, col, colIdx}))
+      ))
+    ));
+
+    const zDepth = isMobile ? -3 : 0;
+
+    flattenedGrid.forEach(({row, rowIdx, col, colIdx}, index) => {
+      createEl('a-curvedimage', [
+        ['id', `tile__${rowIdx}_${colIdx}`],
+        ['tile', {
+          index,
+          radius: row.radius,
+          height: (col.height || row.rowHeight) - 0.1,
+          width: col.width - 1,
+          position: JSON.stringify({x: 0, y: col.posY || row.posY, z: zDepth}),
+          rotation: JSON.stringify({x: 0, y: col.rotY, z: 0}),
+          content: JSON.stringify(this.data.content[index]),
+        }],
+      ], this.el);
     });
-    this.el.addEventListener('unfocus-tile', () => {
-      if (!this.active) { return; }
-      const activeId = this.active.tile.id;
-      this.unfocusTile(activeId);
-    });
   },
-  setupControls() {
-    this.el.addEventListener('layout-move', e => this.layoutMove(e.detail));
-    this.el.addEventListener('media-move', e => this.mediaMove(e.detail));
-  },
-  layoutMove(dir) {
-    const currIdx = Number(this.active.tile.getAttribute('data-index'));
-    const nextIdx = getNextIdx(dir, currIdx, this.el.childNodes.length);
-
-    const tile = this.el.childNodes[nextIdx];
-    this.active.tile.emit('unfocus-instant');
-    tile.emit('focus-instant');
-
-    const content = this.data.content[nextIdx];
-    updateInfo(content.information);
-
-    this.active = {tile, content};
-  },
-  mediaMove(dir) {
-    const tile = this.active.tile;
-    tile.emit('media-move-tile', dir);
-  },
-  focusTile(activeId) {
-    const emitTile = tile => tile.emit(tile.id === activeId ? 'focus' : 'hide');
-    this.el.childNodes.forEach(emitTile);
-    addControls(this.active.content.link);
-  },
-  unfocusTile(activeId) {
-    const emitTile = tile => tile.emit(tile.id === activeId ? 'unfocus' : 'unhide');
-    this.el.childNodes.forEach(emitTile);
-    removeControls();
-    setTimeout(() => { this.active = null; }, 500);
-  }
 });

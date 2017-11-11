@@ -1,4 +1,4 @@
-import {createEl} from './index';
+import {createEl} from './utils';
 
 export const CORS_PROXY = 'http://ec2-52-27-113-232.us-west-2.compute.amazonaws.com:8080';
 
